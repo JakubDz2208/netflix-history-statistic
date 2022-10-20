@@ -5,34 +5,45 @@ import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 from seaborn import histplot
+import plotly.express as px
+from plotly.offline import plot
 
-df_raw = pd.read_csv('NetflixViewingHistory.csv')
+class Handler():
 
-df = df_raw.copy()
+    def __init__(self, path) -> None:
+        self.path = path
+        
+    def prepare_data(self):
+        self.df_raw = pd.read_csv(self.path)
 
-df[['Title','Subtitle']] = df['Title'].str.split(':', 1, expand=True).apply(lambda x: ':' if 'Title' in x else x)
-df1 = df['Title'].value_counts().rename_axis('Title').reset_index(name='Frequency')
-df = df.drop_duplicates(subset='Title')
-df = pd.merge(df, df1, on=['Title'])
-df = df.drop(['Subtitle'], axis=1)
+        self.df = self.df_raw.copy()
 
-df_raw_list_all = pd.read_csv('NetflixList.csv')
-df_fullList = df_raw_list_all.copy()
+        self.df[['Title','Subtitle']] = self.df['Title'].str.split(':', 1, expand=True).apply(lambda x: ':' if 'Title' in x else x)
+        self.df2 = self.df[['Title', 'Date']]
+        self.df2['Frequency'] = 1
+        self.df2['Date'] = pd.to_datetime(self.df['Date']) + pd.offsets.MonthBegin(0)
+        self.df1 = self.df['Title'].value_counts().rename_axis('Title').reset_index(name='Frequency')
+        self.df = self.df.drop_duplicates(subset='Title')
+        self.df = pd.merge(self.df, self.df1, on=['Title'])
+        self.df = self.df.drop(['Subtitle'], axis=1)
 
-df = df.merge(df_fullList[['Title', 'listed_in']], how = 'inner', on='Title')
-df_fullList['listed_in'] = df_fullList['listed_in'].str.replace('"', '')
-df_fullList['listed_in'] = df_fullList['listed_in'].str.split(', ')
-df_fullList[['first_genre', 'second_genre', 'third_genre']] = pd.DataFrame(df_fullList['listed_in'].tolist())
+        self.df_raw_list_all = pd.read_csv('NetflixList.csv')
+        self.df_fullList = self.df_raw_list_all.copy()
 
-df['listed_in'] = df['listed_in'].str.replace('"', '')
-df['listed_in'] = df['listed_in'].str.replace('\'', '')
-df['listed_in'] = df['listed_in'].str.split(', ')
-df[['first_genre', 'second_genre', 'third_genre']] = pd.DataFrame(df['listed_in'].tolist())
-df = df.drop(['listed_in'], axis=1)
+        self.df_fullList['listed_in'] = self.df_fullList['listed_in'].str.replace('"', '')
+        self.df_fullList['listed_in'] = self.df_fullList['listed_in'].str.replace('\'', '')
+        self.df_fullList['listed_in'] = self.df_fullList['listed_in'].str.split(', ')
+        self.df_fullList[['first_genre', 'second_genre', 'third_genre']] = pd.DataFrame(self.df_fullList['listed_in'].tolist()).astype('category')
+        self.df = self.df.merge(self.df_fullList[['Title', 'first_genre', 'second_genre', 'third_genre']], how = 'inner', on='Title')
 
-df_temp = df.groupby(['first_genre']).Title.value_counts()
+        self.df['Date'] = pd.to_datetime(self.df['Date']) + pd.offsets.MonthBegin(0)
 
-sns.histplot(data = df_temp, y="first_genre")
-plt.show()
-
-
+    def run_plot(self):
+        fig = px.line(self.df, x="Date", y="Frequency")
+        plot(fig)
+        fig = px.density_heatmap(self.df, x="first_genre", y="second_genre", z="Frequency" ,template="seaborn")
+        plot(fig)
+path = 'NetflixViewingHistory.csv'
+c = Handler(path)
+c.prepare_data()
+c.run_plot()

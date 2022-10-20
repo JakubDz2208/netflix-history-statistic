@@ -1,3 +1,5 @@
+from tkinter import Label
+from turtle import end_fill
 import pandas as pd
 import matplotlib as mpl
 from matplotlib.colors import ListedColormap
@@ -7,6 +9,7 @@ import seaborn as sns
 from seaborn import histplot
 import plotly.express as px
 from plotly.offline import plot
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 class Handler():
 
@@ -31,8 +34,11 @@ class Handler():
         self.df_fullList['listed_in'] = self.df_fullList['listed_in'].str.replace('\'', '')
         self.df_fullList['listed_in'] = self.df_fullList['listed_in'].str.split(', ')
         self.df_fullList[['first_genre', 'second_genre', 'third_genre']] = pd.DataFrame(self.df_fullList['listed_in'].tolist()).astype('category')
-        self.df = self.df.merge(self.df_fullList[['Title', 'first_genre', 'second_genre', 'third_genre']], how = 'inner', on='Title')
+        self.df = self.df.merge(self.df_fullList[['Title', 'first_genre', 'second_genre', 'third_genre', 'type']], how = 'inner', on='Title')
         self.df['Date'] = pd.to_datetime(self.df['Date']) + pd.offsets.MonthBegin(0)
+
+        self.dummy_df = pd.get_dummies(self.df, columns=['first_genre', 'type'], drop_first=True)
+        print(self.dummy_df)
 
     def run_plot(self):
         fig = px.line(self.df, x="Date", y="Frequency")
@@ -42,4 +48,4 @@ class Handler():
 path = 'NetflixViewingHistory.csv'
 c = Handler(path)
 c.prepare_data()
-c.run_plot()
+# c.run_plot()

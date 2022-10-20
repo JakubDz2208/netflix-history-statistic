@@ -19,9 +19,6 @@ class Handler():
         self.df = self.df_raw.copy()
 
         self.df[['Title','Subtitle']] = self.df['Title'].str.split(':', 1, expand=True).apply(lambda x: ':' if 'Title' in x else x)
-        self.df2 = self.df[['Title', 'Date']]
-        self.df2['Frequency'] = 1
-        self.df2['Date'] = pd.to_datetime(self.df['Date']) + pd.offsets.MonthBegin(0)
         self.df1 = self.df['Title'].value_counts().rename_axis('Title').reset_index(name='Frequency')
         self.df = self.df.drop_duplicates(subset='Title')
         self.df = pd.merge(self.df, self.df1, on=['Title'])
@@ -35,7 +32,6 @@ class Handler():
         self.df_fullList['listed_in'] = self.df_fullList['listed_in'].str.split(', ')
         self.df_fullList[['first_genre', 'second_genre', 'third_genre']] = pd.DataFrame(self.df_fullList['listed_in'].tolist()).astype('category')
         self.df = self.df.merge(self.df_fullList[['Title', 'first_genre', 'second_genre', 'third_genre']], how = 'inner', on='Title')
-
         self.df['Date'] = pd.to_datetime(self.df['Date']) + pd.offsets.MonthBegin(0)
 
     def run_plot(self):
